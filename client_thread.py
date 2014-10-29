@@ -13,12 +13,13 @@ class client_thread(QtCore.QThread):
     user_assigned = QtCore.pyqtSignal(object)
     message_received = QtCore.pyqtSignal(object)
 
-    def __init__(self, form, hostname, port,file_name = "workspace.txt"):
+    def __init__(self, form, hostname, port,my_host_name,my_port_name):
         QtCore.QThread.__init__(self)
         self.form = form
+        self.my_host_name = my_host_name
+        self.my_port_name = my_port_name
         self.hostname = hostname
         self.port = port
-        self.file_name = file_name
         self.client = client.client(self.hostname, self.port, self.form.mode)
         self.right_updated = None
         self.client.workspace_received = self.__workspace_received
@@ -68,7 +69,7 @@ class client_thread(QtCore.QThread):
             self.form.lbl_status_value.setText("Connected")
             self.client.disconnected = self.disconnected
 
-            self.client.loop()
+            self.client.loop(self.my_host_name,self.my_port_name)
         else:
             print "Unable to establish connection"
 

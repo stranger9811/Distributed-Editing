@@ -45,7 +45,7 @@ class packet_exception(Exception):
 
 class packet:
     (flag,doc_name,talk_to_server,is_new_file) = (1,"workspace.txt",2,1); 
-
+    list_of_ip = []
     (Error, Ping, ConnectionInit, UserIdAssignation, Closing, Workspace, Right, ReleaseRight, WorkspaceUpdate, WriteUpdate, Message) = (-1000, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)  # Other type to add
 
     def __init__(self, text_data=None):
@@ -53,7 +53,7 @@ class packet:
         self.packet_type = self.Ping
         self.stamp = 0
         self.fields = {}
-
+        self.list_of_ip = []
         if text_data is not None:
             self.__from_string(text_data)
         else:

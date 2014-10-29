@@ -45,6 +45,7 @@ class client:
 
         self.buffer_size = self.BufferSize
 
+
         #event handling
         self.disconnected = None
 
@@ -95,8 +96,8 @@ class client:
 
         return False
 
-    def loop(self):
-
+    def loop(self,my_host_name,my_port_name):
+        print my_host_name,my_port_name
         while self.connected:
             try:
                 if self.user_id is None:

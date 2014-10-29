@@ -11,11 +11,13 @@ class client_form(QtGui.QMainWindow):
 
     (DefaultWidth, DefaultHeight) = (500, 600)
 
-    def __init__(self, mode):
+    def __init__(self, mode,my_host_name,my_port_name):
         super(client_form, self).__init__()
         self.mode = mode
         self.w_width = self.DefaultWidth
         self.w_height = self.DefaultHeight
+        self.my_host_name = my_host_name
+        self.my_port_name = my_port_name
         self.connection_thread = None
         self.__init_menu()
         self.__init_components()
@@ -63,7 +65,7 @@ class client_form(QtGui.QMainWindow):
         self.lbl_status_value = QtGui.QLabel("Not Connected")
         self.lbl_textbox = QtGui.QLabel("Workspace")
         self.lbl_user_value = QtGui.QLabel("")
-
+        self.te_workspace.setText("write here")
         #grid assign
     
         self.grid.addWidget(self.lbl_textbox, 3, 0, 1, 4)
@@ -85,7 +87,7 @@ class client_form(QtGui.QMainWindow):
     def connect_to_server(self, hostname, port):
         #WORKSPACE-01
         if self.connection_thread is None:
-            self.connection_thread = client_thread(self, hostname, port)
+            self.connection_thread = client_thread(self, hostname, port,self.my_host_name,self.my_port_name)
             self.connection_thread.workspace_received.connect(self.workspace_received)
             self.connection_thread.user_assigned.connect(self.user_assigned)
             self.connection_thread.start()
@@ -112,6 +114,12 @@ if __name__ == '__main__':
     nargs = len(sys.argv)
     i = 0
     _mode = client.client.NormalMode
+    
+    if(len(sys.argv) < 3) :
+        print 'Usage : python telnet.py hostname port'
+        sys.exit()
+    host = sys.argv[1]
+    port = int(sys.argv[2])
 
     while i < nargs:
         arg = sys.argv[i]
@@ -119,9 +127,7 @@ if __name__ == '__main__':
         if arg == '-d' or arg == '--debug':
             print "Debug Mode"
             _mode = client.client.DebugMode
-        else:
-            file_name = arg
         i += 1
 
-    frame = client_form(_mode)
+    frame = client_form(_mode,host,port)
     sys.exit(app.exec_())

@@ -67,6 +67,10 @@ class handle_connection(threading.Thread):
                     doc = recv_packet.doc_name
                     if doc in doc_index.keys():
                         doc_index[doc] = doc_index[doc].append(self.address);
+                        send_packet  = packet()
+                        send_packet.is_new_file = 0
+                        send_packet.list_of_ip = doc_index[doc]
+                        self.__send(send_packet)
                     else:
                         doc_index[doc] = [self.address];
                         send_packet  = packet()

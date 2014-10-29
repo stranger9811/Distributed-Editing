@@ -8,7 +8,7 @@ import packet
 
 class server:
 
-    (DefaultPort, DefaultWorkspace, MaxConnections) = (5451, 'workspace.txt', 25)
+    (DefaultPort, DefaultWorkspace, MaxConnections) = (5481, 'workspace.txt', 25)
     (NormalMode, DebugMode) = (0, 1)
 
     def __init__(self, port=DefaultPort, workspace_file=DefaultWorkspace, max_connections=MaxConnections, mode=NormalMode):
