@@ -5,7 +5,6 @@ from handle_connection import handle_connection
 import workspace
 import random
 import packet
-import lamport_clock
 
 class server:
 
@@ -13,7 +12,6 @@ class server:
     (NormalMode, DebugMode) = (0, 1)
 
     def __init__(self, port=DefaultPort, workspace_file=DefaultWorkspace, max_connections=MaxConnections, mode=NormalMode):
-        self.lamport = lamport_clock.lamport_clock()
         self.mode = mode
         self.port = port
         self.workspace_file = workspace_file
@@ -29,7 +27,6 @@ class server:
 
         self.usernames = []
 
-        self.load_users()
 
     def get_thread(self, connection_id):
         for c in self.threads:
@@ -46,20 +43,7 @@ class server:
                 p.put_field("message", message)
                 c.queued_packets.append(p)
 
-    def load_users(self):
-
-        fp = open('mock_users.txt', 'r')
-
-        lines = fp.readlines()
-
-        fp.close()
-
-        for l in lines:
-            name = l.rstrip('\n')
-            name = name.rstrip('\r')
-
-            if len(name) > 0:
-                self.usernames.append(name)
+  
 
     def get_username(self):
         i = random.randint(0, len(self.usernames) - 1)
