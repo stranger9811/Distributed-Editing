@@ -100,68 +100,21 @@ class client:
         print my_host_name,my_port_name
         while self.connected:
             try:
-                if self.user_id is None:
-                    #must do connection init
-                    send_packet = packet()
-                    send_packet.flag = JOIN
-                    send_packet.doc_name = self.file_name
-                    send_packet.packet_type = packet.talk_to_server
-                    self.__send(send_packet)
+                send_packet = packet()
+                send_packet.flag = JOIN
+                send_packet.doc_name = self.file_name
+                send_packet.packet_type = packet.talk_to_server
+                self.__send(send_packet)
 
-                    recv_packet = self.__receive()
-                    print "can write ",self.can_write
-                    if recv_packet.is_new_file == 1:
-                        print "new file"
-                        while 1:
-                            x= 1
-                    else:
-                        print "not a new file"
-
+                recv_packet = self.__receive()
+                print "can write ",self.can_write
+                if recv_packet.is_new_file == 1:
+                    print "new file"
+                    while 1:
+                        x= 1
                 else:
-                    if len(self.queued_packets) > 0:
-                        q_packet = self.queued_packets[0]
+                    print "not a new file"
 
-                        if q_packet.packet_type == packet.Right or q_packet.packet_type == packet.ReleaseRight:
-                            q_packet.stamp = self.lamport.increment()
-
-                        self.__send(q_packet)
-                        self.debug("queued packet send %s" % q_packet.to_string())
-                        self.queued_packets.remove(q_packet)
-                    else:
-                        send_packet = packet()
-                        self.__send(send_packet)
-
-                    recv_packet = self.__receive()
-
-                    if recv_packet.packet_type == packet.Ping:
-                        self.debug("Ping from server (%d)" % recv_packet.packet_id)
-
-                    elif recv_packet.packet_type == packet.Right:
-                        can_write = recv_packet.get_bool('can_write')
-                        is_waiting = recv_packet.get_bool('is_waiting')
-
-                        self.can_write = can_write
-                        self.is_waiting = is_waiting
-                        self.__write_status_changed()
-
-                    elif recv_packet.packet_type == packet.WorkspaceUpdate:
-                        diff_data = recv_packet.get_field("diff")
-                        diff = workspace_diff.workspace_diff(diff_data)
-
-                        if not diff.is_empty():
-                            self.workspace.apply_diff(diff)
-                            self.__workspace_received()
-
-                    elif recv_packet.packet_type == packet.WriteUpdate:
-                        user_id = recv_packet.get_field("id")
-
-                        if self.write_update is not None:
-                            print user_id
-                            self.write_update(user_id)
-
-                    elif recv_packet.packet_type == packet.Message:
-                        msg = recv_packet.get_field("message")
-                        self.__message_recevied(msg)
 
             except socket.error as e:
                 print "Socket error [%s, %s]" % (e.errno, e.strerror)
