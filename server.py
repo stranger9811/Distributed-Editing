@@ -6,9 +6,10 @@ import workspace
 import random
 import packet
 
+
 class server:
 
-    (DefaultPort, DefaultWorkspace, MaxConnections) = (5481, 'workspace.txt', 25)
+    (DefaultPort, DefaultWorkspace, MaxConnections) = (5498, 'workspace.txt', 25)
     (NormalMode, DebugMode) = (0, 1)
 
     def __init__(self, port=DefaultPort, workspace_file=DefaultWorkspace, max_connections=MaxConnections, mode=NormalMode):
@@ -86,7 +87,7 @@ class server:
             print "Removing in right access queued: %d" % connection.connection_id
 
     def start(self):
-        print "Starting pydtxtedit server"
+        print "Starting server"
         print "Listening on port %d" % self.port
         try:
             self.bind_socket.bind(('127.0.0.1', self.port))

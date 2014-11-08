@@ -1,7 +1,7 @@
 
 import random
 import re
-
+from constants import constants
 
 packet_seed = random.randint(0, 100000)
 packet_iterator = 0
@@ -45,13 +45,15 @@ class packet_exception(Exception):
 
 class packet:
     (flag,doc_name,talk_to_server,is_new_file) = (1,"workspace.txt",2,1); 
-    list_of_ip = []
     (Error, Ping, ConnectionInit, UserIdAssignation, Closing, Workspace, Right, ReleaseRight, WorkspaceUpdate, WriteUpdate, Message) = (-1000, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)  # Other type to add
 
-    def __init__(self, text_data=None):
+    def __init__(self,text_data=None):
         self.packet_id = -1
-        self.packet_type = self.Ping
+        self.packet_type = constants().Dummy
         self.stamp = 0
+        self.my_host_name = None
+        self.my_port_name = None
+        self.data = None
         self.fields = {}
         self.list_of_ip = []
         if text_data is not None:
@@ -62,28 +64,28 @@ class packet:
             self.fields = {}
 
     def __from_string(self, text_data):
-        packet_pattern = re.compile("\\[Packet:(?P<packet_id>[0-9]+):(?P<packet_type>[\\-0-9]+):(?P<stamp>[0-9]+)\\]\\((?P<packet_data>.*)\\)", re.DOTALL)
-        m = packet_pattern.match(text_data)
+        list = text_data.split(",,,")
+        print "text_data",text_data
+        for type_data in list:
+            content = type_data.split(":")
+            if content[0] == "packet_type":
+                self.packet_type = int(content[1])
+            elif content[0] == "my_host_name":
+                self.my_host_name = content[1]
+            elif content[0] == "data":
+                self.data = content[1]
+            elif content[0] == "my_port_name":
+                self.my_port_name = int(content[1])
+            elif content[0] == "list_of_ip":
+                c = content[1].split("!")
+                print "content[1]",c
+                for x in c:
 
-        if m:
-            self.packet_id = int(m.group("packet_id"))
-            self.packet_type = int(m.group("packet_type"))
-            self.stamp = int(m.group("stamp"))
-            data = m.group("packet_data")
+                    q = re.sub("[^\w]", " ", x).split()
+                    print "q ",q
+                    self.list_of_ip.append([q[0],int(q[1])])
+                print self.list_of_ip
 
-            if len(data) > 0:
-                fields = data.split(',')
-                for f in fields:
-                    fvars = f.split(':')
-                    if len(fvars) == 2:
-                        key = fvars[0]
-                        fdata = fvars[1]
-                        self.fields[key] = unescape_chars(fdata)
-        else:
-            if text_data is None:
-                raise packet_exception(0, "Parsing error [Empty Packet]")
-            else:
-                raise packet_exception(1, "Parsing error [Raw Data: %s]" % text_data)
 
     def put_field(self, key, value):
         if value is str:
@@ -105,12 +107,19 @@ class packet:
 
     def to_string(self):
         data = ""
-
-        for k in self.fields:
-            fdata = "%s:%s," % (k, escape_chars(self.fields[k]))
-            data += fdata
-
-        data = data.rstrip(',')
-        #[Packet:Id:Type:Stamp](Data,...)
-        data = "[Packet:%d:%d:%d](%s)" % (self.packet_id, self.packet_type, self.stamp, data)
+        if self.packet_type:
+            data = data + "packet_type:" + str(self.packet_type) + ",,,"
+        if self.my_host_name:
+            data = data + "my_host_name:" + str(self.my_host_name) + ",,,"
+        if self.data:
+            data = data + "data:" + self.data + ",,,"
+        if self.list_of_ip != []:
+            list_str = ""
+            for x in range(0,len(self.list_of_ip)-1):
+                list_str = list_str + str(self.list_of_ip[x]) + "!"
+            list_str = list_str + str(self.list_of_ip[-1])
+            data = data + "list_of_ip:" + list_str + ",,,"
+        if self.my_port_name:
+            data = data + "my_port_name:" + str(self.my_port_name)
+        print "packet data is " + data
         return data

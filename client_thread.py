@@ -7,6 +7,7 @@ from packet import packet
 class client_thread(QtCore.QThread):
 
     workspace_received = QtCore.pyqtSignal(object)
+    workspace_received2 = QtCore.pyqtSignal(object)
     write_status_changed = QtCore.pyqtSignal(object)
     write_status_quo = QtCore.pyqtSignal(object)
     write_update = QtCore.pyqtSignal(object)
@@ -23,6 +24,7 @@ class client_thread(QtCore.QThread):
         self.client = client.client(self.hostname, self.port, self.form.mode)
         self.right_updated = None
         self.client.workspace_received = self.__workspace_received
+        self.client.workspace_received2 = self.__workspace_received2
         self.client.write_status_changed = self.__write_status_changed
         self.client.write_status_quo = self.__write_status_quo  # todo to be removed
         self.client.write_update = self.__write_update
@@ -59,6 +61,9 @@ class client_thread(QtCore.QThread):
     def __workspace_received(self, workspace):
         self.workspace_received.emit(workspace)
 
+    def __workspace_received2(self, workspace):
+        self.workspace_received2.emit(workspace)
+
     def __right_updated(self, enabled):
         if self.right_updated is not None:
             self.right_updated(enabled)
@@ -81,7 +86,6 @@ class client_thread(QtCore.QThread):
 
     def disconnected(self):
         self.form.lbl_status_value.setText("Not Connected")
-        self.form.append_log("Disconnected from the server (%s:%d)" % (self.hostname, self.port))
 
     def send_packet(self, packet):
         self.client.queued_packets.append(packet)

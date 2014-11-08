@@ -5,8 +5,8 @@ import workspace
 import workspace_diff
 import time
 import sys
+from constants import constants
 
-JOIN = 1
 
 
 class client_status:
@@ -26,14 +26,16 @@ class client:
         self.file_name = file_name
         self.connected = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.bind_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.user_id = None
         self.workspace = workspace.workspace()
         self.pending_diff = None
-
+        self.peers = []
         self.can_write = True
         self.is_waiting = False
 
         self.workspace_received = None
+        self.workspace_received2 = None
         self.write_status_changed = None
         self.write_update = None
         self.user_assigned = None
@@ -57,12 +59,7 @@ class client:
         if self.message_received is not None:
             self.message_received(message)
 
-    def make_diff(self, new_text):
-        new_workspace = workspace.workspace(new_text)
-        diff = self.workspace.diff(new_workspace)
-
-        self.workspace.apply_diff(diff)
-        return diff
+  
 
     def get_client_status(self):
         return client_status(self.can_write, self.is_waiting)
@@ -71,9 +68,17 @@ class client:
         if self.workspace_received is not None:
             self.workspace_received(self.workspace)
 
-    def __write_status_changed(self):
-        if self.write_status_changed is not None:
-            self.write_status_changed(self.get_client_status())
+    def __workspace_received2(self):
+        print "inside workspace_received2"
+        if self.workspace_received2 is not None:
+            print "inside if condition..."
+            self.workspace_received2(self.workspace)
+
+    def make_diff(self, new_text):
+    
+        self.workspace.set_data(new_text)
+        
+
 
     def debug(self, message):
         if self.mode == self.DebugMode:
@@ -87,6 +92,7 @@ class client:
 
     def connect(self):
         try:
+
             self.socket.connect((self.hostname, self.port))
 
             self.connected = True
@@ -96,24 +102,120 @@ class client:
 
         return False
 
+    def connect_peer(self,hostname,port):
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.connect((hostname, port))
+
+            self.connected = True
+            return True
+        except socket.error as e:
+            print "Unable to connect to %s:%d" % (hostname, port)
+
+        return False
+
     def loop(self,my_host_name,my_port_name):
+        constant = constants()
         print my_host_name,my_port_name
         while self.connected:
             try:
                 send_packet = packet()
-                send_packet.flag = JOIN
+                send_packet.packet_type = constant.JOIN
+                send_packet.my_host_name = my_host_name
+                send_packet.my_port_name = my_port_name
+                print "details packet_type",send_packet.packet_type
                 send_packet.doc_name = self.file_name
-                send_packet.packet_type = packet.talk_to_server
                 self.__send(send_packet)
 
                 recv_packet = self.__receive()
+                self.socket.close();
                 print "can write ",self.can_write
-                if recv_packet.is_new_file == 1:
-                    print "new file"
+                self.bind_socket.bind((my_host_name,my_port_name))
+                print "creating server at ",my_host_name,my_port_name
+                self.bind_socket.listen(10)
+                if recv_packet.packet_type == constant.NewFile:  #new file created.
                     while 1:
-                        x= 1
+                        print "waiting to accept....."
+                        peer_socket, peer_address = self.bind_socket.accept()
+                        print "connection accepted ....."
+                        try:
+                            recv_peer_packet = self.__peer_receive(peer_socket)
+                            # <packet_type 1000: my_host_name: my_port_name> 
+                            if recv_peer_packet.packet_type == constant.NewConnection:
+                                self.peers.append([recv_peer_packet.my_host_name, recv_peer_packet.my_port_name])
+                               
+                                send_packet = packet()
+                                send_packet.packet_type = constant.Ack
+                                self.__peer_send(peer_socket,send_packet)
+
+                            if recv_peer_packet.packet_type == constant.getData:
+                                print "some peer wants my data workspace.data"
+                                send_packet = packet()
+                                print "my workspace data before is ", self.workspace.get_data()
+                                self.__workspace_received2()
+                                time.sleep(1.3)
+                                print "my workspace data is ", self.workspace.get_data()
+                                send_packet.data = self.workspace.get_data()
+                                self.__peer_send(peer_socket,send_packet)
+                            peer_socket.close()
+                        except:
+                            peer_socket.close()
+                            print "error 265"
+                    
                 else:
-                    print "not a new file"
+                    print "joining existing file list_of_ip: ",recv_packet.list_of_ip
+                    for peer in recv_packet.list_of_ip:
+                        print "perr details are: ", peer, type(peer[0]), type(peer[1])
+                        self.connect_peer(peer[0],peer[1])
+                        send_packet = packet()
+                        send_packet.packet_type = constant.NewConnection
+                        send_packet.my_host_name = my_host_name
+                        send_packet.my_port_name = my_port_name
+                        self.__send(send_packet)
+                        recv_peer_ack = self.__receive()
+                    peer = recv_packet.list_of_ip[0]
+                    self.connect_peer(peer[0],peer[1])
+                    send_packet.packet_type = constant.getData
+                    self.__send(send_packet)
+                    recv_peer_data = self.__receive()
+                    self.workspace.set_data(recv_peer_data.data)
+                    print "recv_data ", recv_peer_data.data
+                    self.__workspace_received()
+
+                    print "recv_packet data:",recv_peer_data.data
+                    while 1:
+                        print "waiting to accept....."
+                        peer_socket, peer_address = self.bind_socket.accept()
+                        print "connection accepted ....."
+                        try:
+                            recv_peer_packet = self.__peer_receive(peer_socket)
+                            # <packet_type 1000: my_host_name: my_port_name> 
+                            if recv_peer_packet.packet_type == constant.NewConnection:
+                                self.peers.append([recv_peer_packet.my_host_name, recv_peer_packet.my_port_name])
+                               
+                                send_packet = packet()
+                                send_packet.packet_type = constant.Ack
+                                self.__peer_send(peer_socket,send_packet)
+
+                            if recv_peer_packet.packet_type == constant.getData:
+                                print "some peer wants my data workspace.data"
+                                send_packet = packet()
+                                print "my workspace data before is ", self.workspace.get_data()
+                                self.__workspace_received2()
+                                time.sleep(1.3)
+                                print "my workspace data is ", self.workspace.get_data()
+                                send_packet.data = self.workspace.get_data()
+                                self.__peer_send(peer_socket,send_packet)
+                            peer_socket.close()
+                        except:
+                            peer_socket.close()
+                            print "error 265"
+                    # send_packet = packet()
+                    # send_packet.packet_type = constant.getData
+                    # self.__send(send_packet)
+                    # recv_peer_ack = self.__receive()
+
+
 
 
             except socket.error as e:
@@ -123,13 +225,22 @@ class client:
 
             time.sleep(0.2)
 
+    def __peer_send(self,peer_socket,to_send):
+        print "sending packet packet_type:", to_send.packet_type
+        peer_socket.send(to_send.to_string())
+
+    def __peer_receive(self,peer_socket):
+        data = peer_socket.recv(self.buffer_size)
+        recv_packet = packet(data)
+        return recv_packet
+
     def __receive(self):
         sock_data = self.socket.recv(self.buffer_size)
         recv_packet = packet(sock_data)
-        self.received_packets.append(recv_packet)
         return recv_packet
 
     def __send(self, to_send):
+        print "sending packet packet_type:", to_send.packet_type
         self.sent_packets.append(to_send)
         self.socket.send(to_send.to_string())
 

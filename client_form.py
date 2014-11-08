@@ -73,10 +73,20 @@ class client_form(QtGui.QMainWindow):
 
         self.show()
 
+
+    def give_up_right_action(self):
+        print "current text is ", self.te_workspace.toPlainText()
+        if self.connection_thread is not None:
+            self.connection_thread.client.make_diff(str(self.te_workspace.toPlainText()))
+
     def workspace_received(self, workspace):
+        print "current data in workspace"
+        #self.give_up_right_action()
         self.te_workspace.setText(workspace.get_data())
 
-    
+    def workspace_received2(self, workspace):
+        print "workspace2"
+        self.give_up_right_action()
 
     def connect_dialog(self):
         d = client_dialog.connect_dialog(self)
@@ -89,6 +99,7 @@ class client_form(QtGui.QMainWindow):
         if self.connection_thread is None:
             self.connection_thread = client_thread(self, hostname, port,self.my_host_name,self.my_port_name)
             self.connection_thread.workspace_received.connect(self.workspace_received)
+            self.connection_thread.workspace_received2.connect(self.workspace_received2)
             self.connection_thread.user_assigned.connect(self.user_assigned)
             self.connection_thread.start()
 

@@ -6,7 +6,8 @@ import random
 import hashlib
 import time
 import workspace_diff
-JOIN = 1
+from constants import constants
+
 
 #global vars
 doc_index = {}
@@ -47,51 +48,52 @@ class handle_connection(threading.Thread):
     def run(self):
         self.connected = True
         print "Connection %d started" % self.connection_id
-
-        while self.connected:
+        constant = constants()
+        try:
+            recv_data = self.client.recv(self.buffer_size)
             try:
-                if len(self.queued_packets) > 0:
-                    queued_packet = self.queued_packets[0]
-                    self.__send(queued_packet)
-                    self.queued_packets.remove(queued_packet)
-
-                recv_data = self.client.recv(self.buffer_size)
-                try:
-                    recv_packet = packet(recv_data)
-                except packet_exception as e:
-                    self.master.debug("[%d] Invalid Packet, closing connection" % self.connection_id)
-                    self.connected = False
-
-                print recv_packet.flag
-                if recv_packet.flag == JOIN:
+                recv_packet = packet(recv_data)
+            except packet_exception as e:
+                self.master.debug("[%d] Invalid Packet, closing connection" % self.connection_id)
+                self.connected = False
+            print "packet type is ",recv_packet.packet_type
+            if recv_packet.packet_type == constant.JOIN:
+                doc = recv_packet.doc_name
+                print doc, "this is the doc... 1"
+                print doc_index;
+                if doc in doc_index.keys():
+                    send_packet  = packet()
+                    send_packet.packet_type = constant.Dummy
+                    send_packet.list_of_ip = doc_index[doc]
+                    self.__send(send_packet)
+                    doc_index[doc].append([recv_packet.my_host_name,recv_packet.my_port_name]);
+                else:
                     doc = recv_packet.doc_name
-                    if doc in doc_index.keys():
-                        doc_index[doc] = doc_index[doc].append(self.address);
-                        send_packet  = packet()
-                        send_packet.is_new_file = 0
-                        send_packet.list_of_ip = doc_index[doc]
-                        self.__send(send_packet)
-                    else:
-                        doc_index[doc] = [self.address];
-                        send_packet  = packet()
-                        send_packet.is_new_file = 1
-                        self.__send(send_packet)
+                    print doc, "this is the doc... 2"
+                    print doc_index;
+                    print "i am in else...",recv_packet.my_host_name,recv_packet.my_port_name
+                    print "doc_index",doc_index
+                    doc_index[doc] = list([[recv_packet.my_host_name,recv_packet.my_port_name]]);
+                    print "doc_index",doc_index
+                    send_packet  = packet()
+                    send_packet.packet_type  = constant.NewFile
+                    self.__send(send_packet)
 
-                    print "client want to join " + doc
+                print "client want to join " + doc
 
-            except socket.timeout:
-                #timeout hit
-                print "[%d] Client timed out, terminating thread" % self.connection_id
+        except socket.timeout:
+            #timeout hit
+            print "[%d] Client timed out, terminating thread" % self.connection_id
+            self.connected = False
+
+        except socket.error as e:
+            self.master.debug("socket.error (%d, %s)" % (e.errno, e.strerror))
+            if e.errno == 10054:
+                print "Connection closed by the client..."
                 self.connected = False
 
-            except socket.error as e:
-                self.master.debug("socket.error (%d, %s)" % (e.errno, e.strerror))
-                if e.errno == 10054:
-                    print "Connection closed by the client..."
-                    self.connected = False
-
-            #little nap for the cpu
-            time.sleep(0.3)
+        #little nap for the cpu
+        time.sleep(0.3)
 
         self.terminate()
 
