@@ -7,8 +7,6 @@ from packet import packet
 from client_thread import client_thread
 
 def findChanges(after,before):
-        print after
-        print before
         len_before = len(before)
         len_after = len(after)
         if(len_after < len_before):
@@ -66,11 +64,7 @@ class client_form(QtGui.QMainWindow):
 
     def onTextChanged(self):
         op,c,pos = findChanges(self.te_workspace.toPlainText(),self.current_data)
-        if(op == 'x'):
-            print "no change"
-        else:
-            print op,c,pos
-           
+        if(op != 'x'):
             self.current_data = self.te_workspace.toPlainText()
 
             if self.connection_thread is not None:
@@ -129,6 +123,12 @@ class client_form(QtGui.QMainWindow):
         #self.give_up_right_action()
         self.te_workspace.setText(workspace.get_data())
 
+    def block_writing(self, workspace):
+        self.te_workspace.setEnabled(False)
+
+    def enable_writing(self, workspace):
+        self.te_workspace.setEnabled(False)
+
     def workspace_received2(self, workspace):
         print "workspace2"
        
@@ -144,8 +144,12 @@ class client_form(QtGui.QMainWindow):
         #WORKSPACE-01
         if self.connection_thread is None:
             self.connection_thread = client_thread(self, hostname, port,self.my_host_name,self.my_port_name)
+            
             self.connection_thread.workspace_received.connect(self.workspace_received)
             self.connection_thread.workspace_received2.connect(self.workspace_received2)
+            self.connection_thread.block_writing.connect(self.block_writing)
+            self.connection_thread.enable_writing.connect(self.enable_writing)
+
             self.connection_thread.user_assigned.connect(self.user_assigned)
             self.connection_thread.start()
 

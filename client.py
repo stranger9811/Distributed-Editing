@@ -5,7 +5,10 @@ import workspace
 import workspace_diff
 import time
 import sys
+import thread
 from constants import constants
+
+
 
 
 
@@ -37,6 +40,8 @@ class client:
 
         self.workspace_received = None
         self.workspace_received2 = None
+        self.block_writing = None
+        self.enable_writing = None
         self.write_status_changed = None
         self.write_update = None
         self.user_assigned = None
@@ -60,7 +65,8 @@ class client:
         if self.message_received is not None:
             self.message_received(message)
 
-  
+    def sendOperationToAllPeers(self,operation, peers):
+        print "sending ", operation, " to all peers",peers
 
     def get_client_status(self):
         return client_status(self.can_write, self.is_waiting)
@@ -68,6 +74,14 @@ class client:
     def __workspace_received(self):
         if self.workspace_received is not None:
             self.workspace_received(self.workspace)
+
+    def __block_writing(self):
+        if self.block_writing is not None:
+            self.block_writing(self.workspace)
+
+    def __enable_writing(self):
+        if self.enable_writing is not None:
+            self.enable_writing(self.workspace)
 
     def __workspace_received2(self):
         print "inside workspace_received2"
@@ -81,8 +95,7 @@ class client:
 
 
     def receiveExtraOperations(self,operation, s,pos):
-        print "text changed"
-        print "operation to be done", operation, s,pos
+        print " new operation to be done", operation, s,pos
         self.set_of_operation.append([operation, s,pos])
         
 
@@ -143,7 +156,10 @@ class client:
                 if recv_packet.packet_type == constant.NewFile:  #new file created.
                     while 1:
                         print "waiting to accept....."
+                        thread.start_new_thread(self.sendOperationToAllPeers,(self.set_of_operation,self.peers))
+            
                         peer_socket, peer_address = self.bind_socket.accept()
+
                         print "connection accepted ....."
                         try:
                             recv_peer_packet = self.__peer_receive(peer_socket)
@@ -171,8 +187,9 @@ class client:
                     
                 else:
                     print "joining existing file list_of_ip: ",recv_packet.list_of_ip
+                    self.__block_writing()
                     for peer in recv_packet.list_of_ip:
-                        print "perr details are: ", peer, type(peer[0]), type(peer[1])
+                        print "perr details are: ", peer
                         self.connect_peer(peer[0],peer[1])
                         send_packet = packet()
                         send_packet.packet_type = constant.NewConnection
@@ -191,6 +208,8 @@ class client:
 
                     print "recv_packet data:",recv_peer_data.data
                     while 1:
+                        if len(self.peers) != 0 and len(self.set_of_operation)!=0:
+                            thread.start_new_thread(self.sendOperationToAllPeers,(self.set_of_operation,self.peers))
                         print "waiting to accept....."
                         peer_socket, peer_address = self.bind_socket.accept()
                         print "connection accepted ....."
