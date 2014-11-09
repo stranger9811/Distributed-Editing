@@ -5,3 +5,4 @@ class constants:
 	JOIN  = 1
 	getData = 1003
 	Ack = 1006
+	OperationTransformation = 1007

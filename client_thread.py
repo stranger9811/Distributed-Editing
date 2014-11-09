@@ -7,7 +7,7 @@ from packet import packet
 class client_thread(QtCore.QThread):
 
     workspace_received = QtCore.pyqtSignal(object)
-    workspace_received2 = QtCore.pyqtSignal(object)
+    update_workspace = QtCore.pyqtSignal(object)
     block_writing = QtCore.pyqtSignal(object)
     enable_writing = QtCore.pyqtSignal(object)
 
@@ -27,7 +27,7 @@ class client_thread(QtCore.QThread):
         self.client = client.client(self.hostname, self.port, self.form.mode)
         self.right_updated = None
         self.client.workspace_received = self.__workspace_received
-        self.client.workspace_received2 = self.__workspace_received2
+        self.client.update_workspace = self.__update_workspace
         self.client.block_writing = self.__block_writing
         self.client.enable_writing = self.__enable_writing
         self.client.write_status_changed = self.__write_status_changed
@@ -67,8 +67,8 @@ class client_thread(QtCore.QThread):
         self.workspace_received.emit(workspace)
 
 
-    def __workspace_received2(self, workspace):
-        self.workspace_received2.emit(workspace)
+    def __update_workspace(self, workspace):
+        self.update_workspace.emit(workspace)
 
     def __block_writing(self, workspace):
         self.block_writing.emit(workspace)
