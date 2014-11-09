@@ -31,6 +31,7 @@ class client:
         self.workspace = workspace.workspace()
         self.pending_diff = None
         self.peers = []
+        self.set_of_operation = []
         self.can_write = True
         self.is_waiting = False
 
@@ -77,6 +78,12 @@ class client:
     def make_diff(self, new_text):
     
         self.workspace.set_data(new_text)
+
+
+    def receiveExtraOperations(self,operation, s,pos):
+        print "text changed"
+        print "operation to be done", operation, s,pos
+        self.set_of_operation.append([operation, s,pos])
         
 
 

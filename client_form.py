@@ -6,6 +6,25 @@ import client
 from packet import packet
 from client_thread import client_thread
 
+def findChanges(after,before):
+        print after
+        print before
+        len_before = len(before)
+        len_after = len(after)
+        if(len_after < len_before):
+            for i in range(0,len_before):
+                if i>=len_after:
+                    return 'd',after[len_after:],len_after
+                if(before[i] != after[i]):
+                    return 'd',before[i],i
+        elif(len_after > len_before):
+            for i in range(0,len_after):
+                if i>=len_before:
+                    return 'd',before[len_before:],len_before
+                if(before[i] != after[i]):
+                    return 'a',after[i],i
+        else:
+            return 'x','c','0'
 
 class client_form(QtGui.QMainWindow):
 
@@ -21,6 +40,8 @@ class client_form(QtGui.QMainWindow):
         self.connection_thread = None
         self.__init_menu()
         self.__init_components()
+
+    
 
     def __init_menu(self):
         self.menu = self.menuBar()
@@ -39,6 +60,24 @@ class client_form(QtGui.QMainWindow):
         self.file_menu.addAction(self.disconnect_server)
         self.file_menu.addAction(self.quit_action)
 
+
+    
+            
+
+    def onTextChanged(self):
+        op,c,pos = findChanges(self.te_workspace.toPlainText(),self.current_data)
+        if(op == 'x'):
+            print "no change"
+        else:
+            print op,c,pos
+           
+            self.current_data = self.te_workspace.toPlainText()
+
+            if self.connection_thread is not None:
+                self.connection_thread.client.receiveExtraOperations(op,c,pos)
+        
+
+
     def __init_components(self):
         self.setWindowTitle("CS632 Project")
         self.setMinimumWidth(self.w_width)
@@ -53,8 +92,12 @@ class client_form(QtGui.QMainWindow):
         self.main_widget.setLayout(self.grid)
 
 
-        #textedit
+        self.te_line    = QtGui.QLineEdit()
         self.te_workspace = QtGui.QTextEdit()
+        self.te_workspace.textChanged.connect(self.onTextChanged)
+
+        self.operation_transformation = []
+
         self.te_workspace.setEnabled(False)
 
         self.te_log = QtGui.QTextEdit()
@@ -65,6 +108,8 @@ class client_form(QtGui.QMainWindow):
         self.lbl_status_value = QtGui.QLabel("Not Connected")
         self.lbl_textbox = QtGui.QLabel("Workspace")
         self.lbl_user_value = QtGui.QLabel("")
+        self.current_data = "write here"
+        self.operation_transformation = []
         self.te_workspace.setText("write here")
         #grid assign
     
@@ -86,6 +131,7 @@ class client_form(QtGui.QMainWindow):
 
     def workspace_received2(self, workspace):
         print "workspace2"
+       
         self.give_up_right_action()
 
     def connect_dialog(self):
