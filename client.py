@@ -40,7 +40,6 @@ class client:
         self.is_waiting = False
 
         self.workspace_received = None
-        self.update_workspace = None
         self.block_writing = None
         self.enable_writing = None
         self.write_status_changed = None
@@ -83,12 +82,6 @@ class client:
     def __enable_writing(self):
         if self.enable_writing is not None:
             self.enable_writing(self.workspace)
-
-    def __update_workspace(self):
-        print "inside workspace_received2"
-        if self.update_workspace is not None:
-            print "inside if condition..."
-            self.update_workspace(self.workspace)
 
 
     def update_workspace_data(self, new_text):
@@ -145,7 +138,12 @@ class client:
                         send_packet.packet_type = constant.OperationTransformation
                         send_packet.data = "(" + str(op[0]) + "," + str(op[1]) + "," + str(op[2]) + ")"
                         self.__send(send_packet)
-    
+
+    def handleNewConnection():
+        self.peers.append([recv_peer_packet.my_host_name, recv_peer_packet.my_port_name])
+        send_packet = packet()
+        send_packet.packet_type = constant.Ack
+        self.__peer_send(peer_socket,send_packet)
 
     def mergeNewOperations(self):
         while 1:
@@ -172,8 +170,7 @@ class client:
                 if op == 'a':
                     current_data_in_workspace = self.workspace.get_data()
                     self.workspace.set_data(current_data_in_workspace[:pos] + c + current_data_in_workspace[pos:])
-                    self.__workspace_received()
-
+            self.__workspace_received()
             self.__enable_writing()
 
 
@@ -225,11 +222,8 @@ class client:
                             recv_peer_packet = self.__peer_receive(peer_socket)
                             # <packet_type 1000: my_host_name: my_port_name> 
                             if recv_peer_packet.packet_type == constant.NewConnection:
-                                self.peers.append([recv_peer_packet.my_host_name, recv_peer_packet.my_port_name])
-                               
-                                send_packet = packet()
-                                send_packet.packet_type = constant.Ack
-                                self.__peer_send(peer_socket,send_packet)
+                                handleNewConnection()
+                                
 
                             if recv_peer_packet.packet_type == constant.OperationTransformation:
                                 self.set_of_operation_to_merge.append(recv_peer_packet.data)
@@ -238,8 +232,7 @@ class client:
                                 print "some peer wants my data workspace.data"
                                 send_packet = packet()
                                 print "my workspace data before is ", self.workspace.get_data()
-                                self.__update_workspace()
-                                time.sleep(2)
+                                
                                 print "my workspace data is ", self.workspace.get_data()
                                 send_packet.data = self.workspace.get_data()
                                 self.__peer_send(peer_socket,send_packet)
@@ -280,11 +273,7 @@ class client:
                             recv_peer_packet = self.__peer_receive(peer_socket)
                             # <packet_type 1000: my_host_name: my_port_name> 
                             if recv_peer_packet.packet_type == constant.NewConnection:
-                                self.peers.append([recv_peer_packet.my_host_name, recv_peer_packet.my_port_name])
-                               
-                                send_packet = packet()
-                                send_packet.packet_type = constant.Ack
-                                self.__peer_send(peer_socket,send_packet)
+                                handleNewConnection()
 
                             if recv_peer_packet.packet_type == constant.OperationTransformation:
                                 self.set_of_operation_to_merge.append(recv_peer_packet.data)
@@ -293,8 +282,7 @@ class client:
                                 print "some peer wants my data workspace.data"
                                 send_packet = packet()
                                 print "my workspace data before is ", self.workspace.get_data()
-                                self.__update_workspace()
-                                time.sleep(2)
+                                
                                 print "my workspace data is ", self.workspace.get_data()
                                 send_packet.data = self.workspace.get_data()
                                 self.__peer_send(peer_socket,send_packet)

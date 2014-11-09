@@ -127,9 +127,6 @@ class client_form(QtGui.QMainWindow):
         self.te_workspace.text_status = True
         self.te_workspace.setEnabled(True)
 
-    def update_workspace(self, workspace):
-        if self.connection_thread is not None:
-            self.connection_thread.client.update_workspace_data(str(self.te_workspace.toPlainText()))
 
     def connect_dialog(self):
         d = client_dialog.connect_dialog(self)
@@ -143,7 +140,7 @@ class client_form(QtGui.QMainWindow):
             self.connection_thread = client_thread(self, hostname, port,self.my_host_name,self.my_port_name)
             
             self.connection_thread.workspace_received.connect(self.workspace_received)
-            self.connection_thread.update_workspace.connect(self.update_workspace)
+          
             self.connection_thread.block_writing.connect(self.block_writing)
             self.connection_thread.enable_writing.connect(self.enable_writing)
 
