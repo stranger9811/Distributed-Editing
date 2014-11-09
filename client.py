@@ -130,14 +130,12 @@ class client:
         constant = constants()
         while 1:
             if self.set_of_operation == []:
-                print "No changes yet"
-                time.sleep(3)
+                time.sleep(1)
             else:
-                self.__block_writing()
+                
                 peers = self.peers
                 operation = self.set_of_operation
                 self.set_of_operation = []
-                self.__enable_writing()
                 print "===================SENDING OPERATIONS TO OTHER PEERS===================== "
                 for op in operation:
                     for peer in peers:
@@ -147,11 +145,12 @@ class client:
                         send_packet.packet_type = constant.OperationTransformation
                         send_packet.data = "(" + str(op[0]) + "," + str(op[1]) + "," + str(op[2]) + ")"
                         self.__send(send_packet)
+    
 
     def mergeNewOperations(self):
         while 1:
             if self.set_of_operation_to_merge == []:
-                time.sleep(3)
+                time.sleep(1)
                 continue
             self.__block_writing()
             new_operations = self.set_of_operation_to_merge
@@ -189,8 +188,10 @@ class client:
             print "Unable to connect to %s:%d" % (hostname, port)
 
         return False
+    
     def handleNewConnection():
         x = 1
+    
     def loop(self,my_host_name,my_port_name):
         constant = constants()
         print my_host_name,my_port_name
