@@ -63,13 +63,14 @@ class client_form(QtGui.QMainWindow):
             
 
     def onTextChanged(self):
+        if self.te_workspace.text_status == False:
+            return
         op,c,pos = findChanges(self.te_workspace.toPlainText(),self.current_data)
         if(op != 'x'):
             self.current_data = self.te_workspace.toPlainText()
 
             if self.connection_thread is not None:
-                self.connection_thread.client.receiveExtraOperations(op,c,pos)
-        
+                self.connection_thread.client.receiveExtraOperations(str(self.te_workspace.toPlainText()),op,c,pos)
 
 
     def __init_components(self):
@@ -97,6 +98,7 @@ class client_form(QtGui.QMainWindow):
         self.te_log = QtGui.QTextEdit()
         self.te_log.setEnabled(False)
         self.te_workspace.setEnabled(True)
+        self.te_workspace.text_status = True
 
         #labels
         self.lbl_status_value = QtGui.QLabel("Not Connected")
@@ -114,14 +116,15 @@ class client_form(QtGui.QMainWindow):
         
 
     def workspace_received(self, workspace):
-        print "current data in workspace"
         #self.give_up_right_action()
         self.te_workspace.setText(workspace.get_data())
 
     def block_writing(self, workspace):
+        self.te_workspace.text_status = False
         self.te_workspace.setEnabled(False)
 
     def enable_writing(self, workspace):
+        self.te_workspace.text_status = True
         self.te_workspace.setEnabled(True)
 
     def update_workspace(self, workspace):

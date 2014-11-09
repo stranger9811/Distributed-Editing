@@ -35,6 +35,7 @@ class client:
         self.pending_diff = None
         self.peers = []
         self.set_of_operation = []
+        self.set_of_operation_to_merge = []
         self.can_write = True
         self.is_waiting = False
 
@@ -65,28 +66,7 @@ class client:
         if self.message_received is not None:
             self.message_received(message)
 
-    def sendOperationToAllPeers(self):
-        constant = constants()
-        while 1:
-            if self.set_of_operation == []:
-                print "No changes yet"
-                time.sleep(10)
-            else:
-                self.__block_writing()
-                time.sleep(.2)
-                peers = self.peers
-                operation = self.set_of_operation
-                self.set_of_operation = []
-                self.__enable_writing()
-                print "===================SENDING OPERATIONS TO OTHER PEERS===================== "
-                for op in operation:
-                    for peer in peers:
-                        print "sending to peer", peer
-                        self.connect_peer(peer[0],peer[1])
-                        send_packet = packet()
-                        send_packet.packet_type = constant.OperationTransformation
-                        send_packet.data = "(" + str(op[0]) + "," + str(op[1]) + "," + str(op[2]) + ")"
-                        self.__send(send_packet)
+    
 
 
     def get_client_status(self):
@@ -110,13 +90,15 @@ class client:
             print "inside if condition..."
             self.update_workspace(self.workspace)
 
+
     def update_workspace_data(self, new_text):
     
         self.workspace.set_data(new_text)
 
 
-    def receiveExtraOperations(self,operation, s,pos):
+    def receiveExtraOperations(self,new_text,operation, s,pos):
         print " new operation to be done", operation, s,pos
+        self.workspace.set_data(new_text)
         self.set_of_operation.append([operation, s,pos])
         
 
@@ -143,29 +125,57 @@ class client:
 
         return False
 
-    def mergeNewOperations(self,data):
-        
-        op_start = data.find('(')
-        op_end   = data.find(',', op_start)
-        op = data[op_start+1:op_end]
 
-        c_end    = data.find(',',op_end+1)
-        c = data[op_end+1:c_end]
+    def sendOperationToAllPeers(self):
+        constant = constants()
+        while 1:
+            if self.set_of_operation == []:
+                print "No changes yet"
+                time.sleep(3)
+            else:
+                self.__block_writing()
+                peers = self.peers
+                operation = self.set_of_operation
+                self.set_of_operation = []
+                self.__enable_writing()
+                print "===================SENDING OPERATIONS TO OTHER PEERS===================== "
+                for op in operation:
+                    for peer in peers:
+                        print "sending to peer", peer
+                        self.connect_peer(peer[0],peer[1])
+                        send_packet = packet()
+                        send_packet.packet_type = constant.OperationTransformation
+                        send_packet.data = "(" + str(op[0]) + "," + str(op[1]) + "," + str(op[2]) + ")"
+                        self.__send(send_packet)
 
-        pos_end  = data.find(')')
+    def mergeNewOperations(self):
+        while 1:
+            if self.set_of_operation_to_merge == []:
+                time.sleep(3)
+                continue
+            self.__block_writing()
+            new_operations = self.set_of_operation_to_merge
+            self.set_of_operation_to_merge = []
+            for data in new_operations:
+                op_start = data.find('(')
+                op_end   = data.find(',', op_start)
+                op = data[op_start+1:op_end]
 
-        pos = int(data[c_end+1:pos_end])
+                c_end    = data.find(',',op_end+1)
+                c = data[op_end+1:c_end]
 
-        print "merge New data", op, c, pos
+                pos_end  = data.find(')')
 
-        self.__block_writing()
-        self.__update_workspace()
-        time.sleep(2)
-        if op == 'a':
-            current_data_in_workspace = self.workspace.get_data()
-            self.workspace.set_data(current_data_in_workspace[:pos] + c + current_data_in_workspace[pos:])
-            self.__workspace_received()
-        self.__enable_writing()
+                pos = int(data[c_end+1:pos_end])
+
+                print "merge New data", op, c, pos
+                
+                if op == 'a':
+                    current_data_in_workspace = self.workspace.get_data()
+                    self.workspace.set_data(current_data_in_workspace[:pos] + c + current_data_in_workspace[pos:])
+                    self.__workspace_received()
+
+            self.__enable_writing()
 
 
     def connect_peer(self,hostname,port):
@@ -201,6 +211,7 @@ class client:
                 self.bind_socket.listen(10)
 
                 thread.start_new_thread(self.sendOperationToAllPeers,())
+                thread.start_new_thread(self.mergeNewOperations,())
 
                 if recv_packet.packet_type == constant.NewFile:  #new file created.
                     while 1:
@@ -217,6 +228,9 @@ class client:
                                 send_packet = packet()
                                 send_packet.packet_type = constant.Ack
                                 self.__peer_send(peer_socket,send_packet)
+
+                            if recv_peer_packet.packet_type == constant.OperationTransformation:
+                                self.set_of_operation_to_merge.append(recv_peer_packet.data)
 
                             if recv_peer_packet.packet_type == constant.getData:
                                 print "some peer wants my data workspace.data"
@@ -271,8 +285,7 @@ class client:
                                 self.__peer_send(peer_socket,send_packet)
 
                             if recv_peer_packet.packet_type == constant.OperationTransformation:
-
-                                self.mergeNewOperations(recv_peer_packet.data)
+                                self.set_of_operation_to_merge.append(recv_peer_packet.data)
 
                             if recv_peer_packet.packet_type == constant.getData:
                                 print "some peer wants my data workspace.data"
