@@ -189,7 +189,8 @@ class client:
             print "Unable to connect to %s:%d" % (hostname, port)
 
         return False
-
+    def handleNewConnection():
+        x = 1
     def loop(self,my_host_name,my_port_name):
         constant = constants()
         print my_host_name,my_port_name
